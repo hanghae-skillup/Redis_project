@@ -1,0 +1,6 @@
+rootProject.name = 'redis_project'
+rootProject.name = 'toygry'
+include 'ApiGateway'
+include 'booking-service'
+include 'cinema-service'
+include 'movie-service'
