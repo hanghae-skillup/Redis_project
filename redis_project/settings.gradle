@@ -1,5 +1,0 @@
-rootProject.name = 'redis_project'
-include 'ApiGateway'
-include 'booking-service'
-include 'cinema-service'
-include 'movie-service'

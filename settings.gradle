@@ -1,0 +1,4 @@
+rootProject.name = 'redis-project'
+include 'multi-movie-service'
+include 'multi-seat-service'
+include 'multi-theater-service'
