@@ -13,7 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "movies")
+@Table(name = "movies", indexes = {
+        @Index(name = "idx_movie_title", columnList = "title"),
+        @Index(name = "idx_movie_genres", columnList = "genres"),
+        @Index(name = "idx_movie_release_date", columnList = "releaseDate")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Movie {

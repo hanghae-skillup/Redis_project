@@ -21,18 +21,33 @@ public class MovieController {
 
     @GetMapping
     public ResponseEntity<List<MovieResponseDto>> getCurrentMovies() {
-        log.info("Received request to get current movies");
-        List<MovieResponseDto> movies = movieService.getCurrentMovies();
-        return ResponseEntity.ok(movies);
+        Runtime runtime = Runtime.getRuntime();
+        long totalMemory = runtime.totalMemory();
+        long freeMemory = runtime.freeMemory();
+        long usedMemory = totalMemory - freeMemory;
+
+        return ResponseEntity.ok()
+                .header("X-Memory-Used", String.valueOf(usedMemory / (1024 * 1024)))
+                .header("X-Memory-Total", String.valueOf(totalMemory / (1024 * 1024)))
+                .header("X-Memory-Rss", String.valueOf(runtime.maxMemory() / (1024 * 1024)))
+                .body(movieService.getCurrentMovies());
     }
 
     @GetMapping("/search")
     public ResponseEntity<List<MovieResponseDto>> searchMovies(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String genres) {
+        Runtime runtime = Runtime.getRuntime();
+        long totalMemory = runtime.totalMemory();
+        long freeMemory = runtime.freeMemory();
+        long usedMemory = totalMemory - freeMemory;
         log.info("Received request to search movies with title: {} and genres: {}", title, genres);
         List<MovieResponseDto> movies = movieService.searchMovies(title, genres);
-        return ResponseEntity.ok(movies);
+        return ResponseEntity.ok()
+                .header("X-Memory-Used", String.valueOf(usedMemory / (1024 * 1024)))
+                .header("X-Memory-Total", String.valueOf(totalMemory / (1024 * 1024)))
+                .header("X-Memory-Rss", String.valueOf(runtime.maxMemory() / (1024 * 1024)))
+                .body(movies);
     }
 
     @PostMapping

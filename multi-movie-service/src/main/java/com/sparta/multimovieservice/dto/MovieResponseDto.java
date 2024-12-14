@@ -1,5 +1,6 @@
 package com.sparta.multimovieservice.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.sparta.multimovieservice.domain.movie.Movie;
 import com.sparta.multimovieservice.domain.movie.MovieRating;
 import lombok.AccessLevel;
@@ -11,7 +12,7 @@ import java.time.LocalDate;
 
 @Getter
 @Builder
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MovieResponseDto {
     private Long id;
     private String title;
@@ -44,5 +45,7 @@ public class MovieResponseDto {
                 .duration(movie.getDuration())
                 .genres(movie.getGenres())
                 .build();
+    }
+    public MovieResponseDto() {
     }
 }
