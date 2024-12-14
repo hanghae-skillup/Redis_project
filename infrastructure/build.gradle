@@ -1,0 +1,19 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.5'
+	id 'io.spring.dependency-management' version '1.1.4'
+}
+
+
+dependencies {
+	implementation project(':domain') // service 모듈 의존성
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+}
+
+tasks.named('bootJar') {
+	enabled = false // bootJar 태스크 비활성화
+}
+
+tasks.named('jar') {
+	enabled = true // 일반 JAR 파일 활성화
+}

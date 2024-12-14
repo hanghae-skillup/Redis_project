@@ -1,0 +1,17 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.5'
+	id 'io.spring.dependency-management' version '1.1.4'
+}
+
+dependencies {
+	implementation project(':common')
+	implementation 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+}
+tasks.named('bootJar') {
+	enabled = false // bootJar 태스크 비활성화
+}
+
+tasks.named('jar') {
+	enabled = true // 일반 JAR 파일 활성화
+}
