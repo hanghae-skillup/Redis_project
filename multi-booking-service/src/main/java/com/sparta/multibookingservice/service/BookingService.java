@@ -8,6 +8,7 @@ import com.sparta.dto.booking.BookingResponseDto;
 import com.sparta.exception.MovieException;
 import com.sparta.multibookingservice.annotation.DistributedLock;
 import com.sparta.multibookingservice.event.BookingCompletedEvent;
+import com.sparta.multibookingservice.redis.DistributedLockTemplate;
 import com.sparta.multibookingservice.repository.BookingJpaRepository;
 import com.sparta.multibookingservice.repository.ScreeningJpaRepository;
 import com.sparta.multibookingservice.repository.SeatJpaRepository;
@@ -31,14 +32,19 @@ public class BookingService {
     private final ScreeningJpaRepository screeningJpaRepository;
     private final SeatJpaRepository seatJpaRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final DistributedLockTemplate lockTemplate;
 
-    // Distributed Lock (AOP)
-    @DistributedLock(key = "booking",
-            waitTime = 0,
-            leaseTime = 3,
-            timeUnit = TimeUnit.SECONDS
-    )
     public List<BookingResponseDto> book(BookingRequestDto request) {
+        return lockTemplate.executeWithLock(
+                "booking:" + request.screeningId(),
+                0L,
+                3L,
+                TimeUnit.SECONDS,
+                () -> processBooking(request)
+        );
+    }
+
+    private List<BookingResponseDto> processBooking(BookingRequestDto request) {
         validateBookingRequest(request);
 
         Screening screening = screeningJpaRepository.findByIdWithTheaterAndMovie(request.screeningId())
@@ -46,9 +52,14 @@ public class BookingService {
 
         List<Seat> seats = getSeatsByNumbers(screening.getTheater().getId(), request.seatNumbers());
 
+        if (seats.stream().anyMatch(Seat::isBooked)) {
+            throw new MovieException("Seat is already booked.");
+        }
+
+        seats.forEach(Seat::book);
+
         List<Booking> bookings = createBookings(request, screening, seats);
         bookingJpaRepository.saveAll(bookings);
-
         List<BookingResponseDto> responses = bookings.stream()
                 .map(BookingResponseDto::from)
                 .toList();
@@ -58,9 +69,38 @@ public class BookingService {
                 request.phoneNumber(),
                 responses
         ));
-
         return responses;
     }
+
+//    // Distributed Lock (AOP)
+//    @DistributedLock(key = "booking",
+//            waitTime = 0,
+//            leaseTime = 3,
+//            timeUnit = TimeUnit.SECONDS
+//    )
+//    public List<BookingResponseDto> book(BookingRequestDto request) {
+//        validateBookingRequest(request);
+//
+//        Screening screening = screeningJpaRepository.findByIdWithTheaterAndMovie(request.screeningId())
+//                .orElseThrow(() -> new MovieException("movie not found."));
+//
+//        List<Seat> seats = getSeatsByNumbers(screening.getTheater().getId(), request.seatNumbers());
+//
+//        List<Booking> bookings = createBookings(request, screening, seats);
+//        bookingJpaRepository.saveAll(bookings);
+//
+//        List<BookingResponseDto> responses = bookings.stream()
+//                .map(BookingResponseDto::from)
+//                .toList();
+//
+//        eventPublisher.publishEvent(new BookingCompletedEvent(
+//                request.userId(),
+//                request.phoneNumber(),
+//                responses
+//        ));
+//
+//        return responses;
+//    }
       // 기존 로직
 //    @Transactional(propagation = Propagation.REQUIRES_NEW)
 //    public List<BookingResponseDto> book(BookingRequestDto request) {

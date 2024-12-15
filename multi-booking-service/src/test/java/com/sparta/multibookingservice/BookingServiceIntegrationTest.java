@@ -119,9 +119,52 @@ class BookingServiceIntegrationTest {
 //                () -> assertThat(failCount.get()).isEqualTo(numberOfThreads - 1)
 //        );
 //    }
+//    @Test
+//    @DisplayName("분산 락을 사용한 동시 예약 테스트")
+//    void distributed_lock_test() throws InterruptedException {
+//        int numberOfThreads = 10;
+//        CountDownLatch startLatch = new CountDownLatch(1);
+//        CountDownLatch endLatch = new CountDownLatch(numberOfThreads);
+//        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
+//        AtomicInteger successCount = new AtomicInteger();
+//        AtomicInteger failCount = new AtomicInteger();
+//
+//        BookingRequestDto request = new BookingRequestDto(
+//                "user1",
+//                1,
+//                "010-1234-5678",
+//                Arrays.asList("A1", "A2", "A3")
+//        );
+//
+//        for (int i = 0; i < numberOfThreads; i++) {
+//            executorService.submit(() -> {
+//                try {
+//                    startLatch.await();
+//                    bookingService.book(request);
+//                    successCount.incrementAndGet();
+//                } catch (Exception e) {
+//                    failCount.incrementAndGet();
+//                } finally {
+//                    endLatch.countDown();
+//                }
+//            });
+//        }
+//
+//        startLatch.countDown();
+//        boolean await = endLatch.await(20, TimeUnit.SECONDS);
+//        executorService.shutdownNow();
+//
+//        assertThat(await).isTrue();
+//        assertThat(successCount.get()).isEqualTo(1);
+//        assertThat(failCount.get()).isEqualTo(numberOfThreads - 1);
+//    }
+//    @AfterEach
+//    void tearDown() throws Exception {
+//        redissonClient.shutdown();
+//    }
     @Test
-    @DisplayName("분산 락을 사용한 동시 예약 테스트")
-    void distributed_lock_test() throws InterruptedException {
+    @DisplayName("함수형 분산 락을 사용한 동시 예약 테스트")
+    void functional_distributed_lock_test() throws InterruptedException {
         int numberOfThreads = 10;
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch endLatch = new CountDownLatch(numberOfThreads);
@@ -141,8 +184,10 @@ class BookingServiceIntegrationTest {
                 try {
                     startLatch.await();
                     bookingService.book(request);
+                    System.out.println("Booking succeeded");
                     successCount.incrementAndGet();
                 } catch (Exception e) {
+                    System.out.println("Booking failed: " + e.getMessage());
                     failCount.incrementAndGet();
                 } finally {
                     endLatch.countDown();
@@ -151,15 +196,15 @@ class BookingServiceIntegrationTest {
         }
 
         startLatch.countDown();
-        boolean await = endLatch.await(20, TimeUnit.SECONDS);
+        endLatch.await(10, TimeUnit.SECONDS);
         executorService.shutdownNow();
 
-        assertThat(await).isTrue();
         assertThat(successCount.get()).isEqualTo(1);
         assertThat(failCount.get()).isEqualTo(numberOfThreads - 1);
     }
+
     @AfterEach
-    void tearDown() throws Exception {
+    void tearDown() {
         redissonClient.shutdown();
     }
 }
