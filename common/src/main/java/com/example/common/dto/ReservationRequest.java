@@ -1,11 +1,12 @@
 package com.example.common.dto;
 
-import lombok.Getter;
+import lombok.*;
 
 import java.util.List;
 
 
-@Getter
+@Getter @Builder @ToString
+@AllArgsConstructor  @NoArgsConstructor
 public class ReservationRequest {
     private Long userId;
     private Long movieId;
