@@ -424,3 +424,12 @@ function getRandomElement(array) {
 
 
 ---
+
+## 분산락 (AOP) lease time, wait time 적용
+
+- waitTime = 0L
+  - 0으로 설정하여 락을 즉시 획득하지 못하면 실패하도록 함
+  - 동시 요청 시 한 요청만 성공하고 나머지는 즉시 실패하게 됨
+- leaseTime = 3L
+  - 3초로 설정하여 예약 로직이 완료될 때까지 충분한 시간 보장
+
