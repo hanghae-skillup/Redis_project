@@ -1,14 +1,15 @@
 package com.sparta.multimovieservice.controller;
 
-import com.sparta.multimovieservice.dto.MovieCreateRequestDto;
-import com.sparta.multimovieservice.dto.MovieResponseDto;
+
+import com.sparta.dto.MovieCreateRequestDto;
+import com.sparta.dto.MovieResponseDto;
 import com.sparta.multimovieservice.service.MovieService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
 
 import java.util.List;
 

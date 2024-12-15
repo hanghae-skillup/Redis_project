@@ -5,7 +5,7 @@
 - 현재 상영중인 영화를 보여주는 **메인 서비스**입니다.
 - 해당 모듈에 DB가 연결되어 있고, DB의 ORM은 해당 서비스에서 관리합니다.
 - 1,2주차 구현의 API 컨트롤러가 해당 모듈에 구현되어 있습니다.
-### multi-theater-service (PORT: 8082)
+### multi-theaterEntity-service (PORT: 8082)
 - 상영관을 관리하는 서비스입니다.
 - 상영관을 등록하고 조회하며, 좌석(Seat) 관리의 역할을 가지고 있습니다.
 ### multi-booking-service (PORT: 8083)

@@ -7,8 +7,9 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/multi-booking-service" />
+            <option value="$PROJECT_DIR$/multi-core" />
             <option value="$PROJECT_DIR$/multi-movie-service" />
-            <option value="$PROJECT_DIR$/multi-seat-service" />
             <option value="$PROJECT_DIR$/multi-theater-service" />
           </set>
         </option>
