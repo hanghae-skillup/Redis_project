@@ -21,7 +21,7 @@ import java.util.concurrent.*;
 
 @SpringBootTest
 @EntityScan(basePackages = "com.example.domain.entity") // 엔티티 스캔 경로 추가
-@ComponentScan(basePackages = {"com.example.service", "com.example.domain"}) // 서비스, 도메인 모듈 스캔
+@ComponentScan(basePackages = {"com.example.service", "com.example.domain", "com.example.common"}) // 서비스, 도메인 모듈 스캔
 class ReservationLockTest {
 
 
