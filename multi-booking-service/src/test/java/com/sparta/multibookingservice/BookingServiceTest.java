@@ -132,7 +132,7 @@ class BookingServiceTest {
         // when & then
         assertThatThrownBy(() -> bookingService.book(request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("좌석은 연속되어야 합니다.");
+                .hasMessageContaining("Seats must be consecutive.");
     }
 
     @Test
@@ -169,6 +169,6 @@ class BookingServiceTest {
         // when & then
         assertThatThrownBy(() -> bookingService.book(request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("이미 예약된 좌석이 포함되어 있습니다");
+                .hasMessageContaining("Seat is already booked.");
     }
 }

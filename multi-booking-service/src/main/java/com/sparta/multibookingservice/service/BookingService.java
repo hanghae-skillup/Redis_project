@@ -6,10 +6,12 @@ import com.sparta.domain.movie.Seat;
 import com.sparta.dto.booking.BookingRequestDto;
 import com.sparta.dto.booking.BookingResponseDto;
 import com.sparta.exception.MovieException;
+import com.sparta.multibookingservice.event.BookingCompletedEvent;
 import com.sparta.multibookingservice.repository.BookingJpaRepository;
 import com.sparta.multibookingservice.repository.ScreeningJpaRepository;
 import com.sparta.multibookingservice.repository.SeatJpaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +25,10 @@ public class BookingService {
     private final BookingJpaRepository bookingJpaRepository;
     private final ScreeningJpaRepository screeningJpaRepository;
     private final SeatJpaRepository seatJpaRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public List<BookingResponseDto> book(BookingRequestDto request) {
-
         validateBookingRequest(request);
 
         Screening screening = screeningJpaRepository.findByIdWithTheaterAndMovie(request.screeningId())
@@ -38,14 +40,23 @@ public class BookingService {
         List<Booking> bookings = createBookings(request, screening, seats);
         bookingJpaRepository.saveAll(bookings);
 
-        return bookings.stream()
+        List<BookingResponseDto> responses = bookings.stream()
                 .map(BookingResponseDto::from)
                 .toList();
+
+        // 예약 완료 이벤트 발행
+        eventPublisher.publishEvent(new BookingCompletedEvent(
+                request.userId(),
+                request.phoneNumber(),
+                responses
+        ));
+
+        return responses;
     }
 
     private void validateBookingRequest(BookingRequestDto request) {
         if (request.seatNumbers().isEmpty()) {
-            throw new MovieException("Please elected seat.");
+            throw new MovieException("Please selected seat.");
         }
 
         if (request.seatNumbers().size() > MAX_BOOKING_SEATS) {
@@ -63,7 +74,7 @@ public class BookingService {
 
     private void validateSeatsAreConsecutive(List<String> seatNumbers) {
         if (!areSeatsConsecutive(seatNumbers)) {
-            throw new MovieException("Seats are consecutive.");
+            throw new MovieException("Seats must be consecutive.");
         }
     }
 
@@ -104,8 +115,20 @@ public class BookingService {
                 .toList();
     }
 
+//    private void validateSeatAvailability(Screening screening, List<Seat> seats) {
+//        List<Seat> bookedSeats = bookingJpaRepository.findByScreening(screening)
+//                .stream()
+//                .map(Booking::getSeat)
+//                .toList();
+//
+//        boolean hasConflict = seats.stream().anyMatch(bookedSeats::contains);
+//        if (hasConflict) {
+//            throw new MovieException("Seat is already booked.");
+//        }
+//    }
+
     private void validateSeatAvailability(Screening screening, List<Seat> seats) {
-        List<Seat> bookedSeats = bookingJpaRepository.findByScreening(screening)
+        List<Seat> bookedSeats = bookingJpaRepository.findByScreeningWithPessimisticLock(screening)
                 .stream()
                 .map(Booking::getSeat)
                 .toList();

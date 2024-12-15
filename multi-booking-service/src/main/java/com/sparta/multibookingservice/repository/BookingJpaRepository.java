@@ -18,10 +18,8 @@ public interface BookingJpaRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.screening.id = :screeningId AND b.userId = :userId")
     int countByScreeningIdAndUserId(@Param("screeningId") Integer screeningId, @Param("userId") String userId);
 
+    // Pessimistic Lock
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT b FROM Booking b WHERE b.screening.id = :screeningId AND b.seat.id IN :seatIds")
-    List<Booking> findByScreeningIdAndSeatIdsWithLock(
-            @Param("screeningId") Integer screeningId,
-            @Param("seatIds") List<Long> seatIds
-    );
+    @Query("SELECT b FROM Booking b WHERE b.screening = :screening")
+    List<Booking> findByScreeningWithPessimisticLock(@Param("screening") Screening screening);
 }
