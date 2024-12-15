@@ -141,3 +141,145 @@
 
 ### **위치**
 - api 모듈 내 api/src/main/resources/http 폴터듸 `api-tests.http` 파일을 참고해주세요.
+
+### 5. 조회 성능 개선 
+### **Movie 테이블 조회 성능 개선**
+- **문제점**: `Movie` 테이블의 `genre` 컬럼에 대한 조회 성능이 떨어짐
+- **해결 방안1**: `genre` 컬럼에 인덱스를 추가하여 조회 성능을 개선
+    ```sql
+    CREATE INDEX idx_movies_release_date ON movies (release_date DESC);
+    CREATE INDEX idx_movies_title ON movies (title);
+    CREATE INDEX idx_movies_genre ON movies (genre);  
+    ```
+- **해결 방안2**: 레디스 캐싱 추가 
+    - `genre` 컬럼 값을 레디스에 캐싱하여 조회 성능을 개선
+    - 레디스에 캐싱된 데이터를 조회하여 DB 조회 횟수를 줄임
+    - 레디스에 캐싱된 데이터가 없을 경우 DB에서 조회한 후 레디스에 저장
+
+
+# 부하 테스트 계획 및 결과
+
+## 테스트 계획서
+
+### Throughput (RPS)
+
+#### DAU(Daily Active User) 추정
+1. **1일 사용자 수(DAU)**: 5,000명
+2. **1명당 1일 평균 요청 수**: 5회
+
+#### 1일 총 접속 수 계산
+1. **1일 총 접속 수** = DAU × 1명당 1일 평균 요청 수
+  - 1일 총 접속 수 = 5,000 × 5 = **25,000**
+
+#### 1일 평균 RPS 계산
+1. **1일 평균 RPS** = 1일 총 접속 수 ÷ 86,400 (초/일)
+  - 1일 평균 RPS = 25,000 ÷ 86,400 ≈ **0.29 RPS**
+
+#### 1일 최대 RPS 계산
+1. **최대 집중률**: 피크 시간대 트래픽이 평균의 10배로 증가한다고 가정.
+2. **1일 최대 RPS** = 1일 평균 RPS × 최대 집중률
+  - 1일 최대 RPS = 0.29 × 10 = **2.9 RPS**
+
+### 테스트 목표
+1. **Throughput 목표**:
+  - 초당 요청 수(RPS)가 최대 2.9까지 증가하는 상황을 가정.
+2. **Latency 목표**:
+  - p(95) 응답 시간이 200ms를 초과하지 않아야 함.
+3. **실패율**:
+  - 요청 실패율이 1% 미만이어야 함.
+
+### 테스트 시나리오
+1. **평균 부하 테스트**:
+  - RPS 0.29를 기준으로 부하 테스트를 수행.
+  - 1초당 1명의 사용자가 요청하며, 부하를 점진적으로 증가.
+2. **최대 부하 테스트**:
+  - RPS 2.9를 목표로, 최대 부하 상황을 시뮬레이션.
+
+### 테스트 설정
+1. **테스트 데이터**:
+  - 영화 데이터 1,000건을 사용.
+2. **테스트 시나리오**:
+  - 점진적 부하 증가와 최대 부하를 유지하는 단계를 포함.
+
+---
+
+## 테스트 시나리오 (test.js)
+
+```javascript
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+export let options = {
+    stages: [
+        { duration: '10s', target: 1 },   // 10초 동안 평균 부하(0.29 RPS)
+        { duration: '10s', target: 3 },   // 10초 동안 최대 부하(2.9 RPS)
+        { duration: '10s', target: 0 },   // 10초 동안 부하 감소
+    ],
+};
+
+export default function () {
+    // 테스트할 요청
+    const url = 'http://localhost:8080/movies/search?title=Movie&genre=DRAMA'; // title, genre 필터링
+
+    // HTTP GET 요청
+    const res = http.get(url);
+
+    // 응답 검증
+    check(res, {
+        'status is 200': (r) => r.status === 200,
+        'response time < 200ms': (r) => r.timings.duration < 200, // 응답 시간 검증
+    });
+
+    sleep(1); // 요청 간 1초 대기
+}
+```
+
+---
+
+
+### Redis 캐시 키 생성 로직
+```java
+@Bean
+public KeyGenerator customKeyGenerator() {
+    return (target, method, params) -> {
+        String key = method.getName() + "_" + String.join("_", Arrays.stream(params)
+            .map(String::valueOf)
+            .toArray(String[]::new));
+        return key;
+    };
+}
+```
+
+### Redis 캐시 만료 설정
+```java
+
+@Bean
+public RedisCacheConfiguration cacheConfiguration() {
+    return RedisCacheConfiguration.defaultCacheConfig()
+        .entryTtl(Duration.ofMinutes(10)) // 캐시 만료 시간: 10분
+        .disableCachingNullValues();      // null 값 캐싱 방지
+}
+```
+
+---
+
+## 부하 테스트 결과 요약
+
+| 단계                | 평균 응답 시간(ms) | 최대 응답 시간(ms) | 요청 성공률(%) | 초당 처리 요청(req/s) |
+|---------------------|-------------------|-------------------|----------------|-----------------------|
+| **기본 상태**       | 56.33            | 463.00            | 94.18          | 1.41                  |
+| **인덱스 적용**     | 14.58            | 151.33            | 100.00         | 1.50                  |
+| **인덱스+캐싱 적용** | 6.64             | 17.42             | 100.00         | 1.52                  |
+
+### 결과 분석
+1. **기본 상태**:
+  - 평균 응답 시간과 최대 응답 시간이 높으며, 실패율이 발생.
+2. **인덱스 적용**:
+  - 인덱스를 추가하며 응답 시간이 대폭 개선되고 실패율 제거.
+3. **인덱스+캐싱 적용**:
+  - 캐싱으로 인해 평균 응답 시간이 가장 짧아짐. 전체적인 성능이 안정적.
+
+### 최종 결론
+- 인덱스와 캐싱은 성능 개선에 효과적이며, 특히 캐싱은 조회 성능을 극대화.
+- Redis 캐시 미적중의 영향을 최소화하기 위해 캐싱 정책 최적화 필요.
+

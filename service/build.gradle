@@ -7,8 +7,8 @@ plugins {
 dependencies {
 	implementation project(':common') // common 모듈 의존성
 	implementation project(':domain') // domain 모듈 의존성
-	implementation project(':infrastructure') // Infrastructure 모듈 의존성 추가
 	implementation 'org.springframework.boot:spring-boot-starter'
+
 }
 tasks.named('bootJar') {
 	enabled = false // bootJar 태스크 비활성화
