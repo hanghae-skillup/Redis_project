@@ -15,10 +15,12 @@ repositories {
 	mavenCentral()
 }
 
+
 // 공통 의존성 정의
 subprojects {
 	apply plugin: 'java'
 	apply plugin: 'io.spring.dependency-management'
+
 
 	repositories {
 		mavenCentral()
@@ -35,6 +37,9 @@ subprojects {
 		// database
 		runtimeOnly 'com.h2database:h2'
 		runtimeOnly 'com.mysql:mysql-connector-j'
+		implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+		implementation 'org.springframework.data:spring-data-redis'
+		implementation 'com.fasterxml.jackson.core:jackson-databind' // JSON 직렬화를 위한 의존성
 
 	}
 

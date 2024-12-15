@@ -30,6 +30,11 @@ public class MovieController {
         return movieService.getMovieById(movieId);
     }
 
+    @GetMapping("/search")
+    public List<MovieDto> searchMovies(@RequestParam(name = "title", required = false) String title,
+                                       @RequestParam(name = "genre", required = false) String genre) {
+        return movieService.searchMovies(title, genre);
+    }
 
     @PatchMapping("/{movieId}/showing")
     public void updateShowing(@PathVariable Long movieId, @RequestParam boolean showing, @RequestParam Long userId) {
