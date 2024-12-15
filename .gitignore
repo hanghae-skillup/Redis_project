@@ -42,8 +42,9 @@ application.yml
 application-oauth.yml
 .env/
 .DS_Store
-log/
+log/x
 **/src/main/generated/
 backupFiles
 
 .env
+application.log
