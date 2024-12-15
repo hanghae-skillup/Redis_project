@@ -20,6 +20,10 @@ public class Seats extends Timestamped{
     private Boolean isReserved;
     private Long reservationId;
 
+
+    @Version // Optimistic Lock 구현
+    private Long version; // JPA가 관리하는 버전 필드
+
     public void updateReservation(Long userId, Long reservationId){
         this.isReserved = true;
         this.reservationId = reservationId;

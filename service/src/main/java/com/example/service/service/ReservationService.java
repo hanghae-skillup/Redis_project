@@ -40,13 +40,14 @@ public class ReservationService {
         createSeatsIfNotExists(movie);
 
         // 3. 좌석 정보 가져오기
-//        List<Seats> reservingSeats = seatRepository.findByMovieIdAndSeatNumberIn(
-//                request.getMovieId(), request.getSeatNumbers()
-//        );
-        //  pessimistic lock 적용
-        List<Seats> reservingSeats = seatRepository.findSeatsWithLock(
+        List<Seats> reservingSeats = seatRepository.findByMovieIdAndSeatNumberIn(
                 request.getMovieId(), request.getSeatNumbers()
         );
+
+        //  pessimistic lock 적용
+//        List<Seats> reservingSeats = seatRepository.findSeatsWithLock(
+//                request.getMovieId(), request.getSeatNumbers()
+//        );
 
 
         // 4. 좌석이 존재하는지 확인

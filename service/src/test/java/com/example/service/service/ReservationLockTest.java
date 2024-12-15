@@ -34,9 +34,68 @@ class ReservationLockTest {
     @Autowired
     private MovieRepository movieRepository;
 
+//    @Test
+//    void pessimistic_lock_test() throws InterruptedException, ExecutionException {
+//        // GIVEN: 초기 데이터 설정
+//        Long movieId = 1L;
+//        String seatNumber = "A1";
+//
+//        Seats seat = Seats.builder()
+//                .movieId(movieId)
+//                .seatNumber(seatNumber)
+//                .isReserved(false)
+//                .build();
+//        seatsRepository.save(seat);
+//
+//        Movies movies =
+//                Movies.builder()
+//                .id(movieId)
+//                .title("영화1")
+//                        .showing(true)
+//                        .ageRating("12")
+//                        .runningMinutes(120)
+//                        .genre(EGenre.ACTION)
+//                .build();
+//        movieRepository.save(movies);
+//
+//        ReservationRequest request = ReservationRequest.builder()
+//                .movieId(movieId)
+//                .seatNumbers(List.of(seatNumber))
+//                .userId(100L)
+//                .build();
+//
+//        // 두 개의 스레드가 동시에 예약 시도
+//        ExecutorService executorService = Executors.newFixedThreadPool(2);
+//
+//        Callable<String> task1 = () -> {
+//            reservationService.reserveSeats(request);
+//            return "Thread 1 Success";
+//        };
+//
+//        Callable<String> task2 = () -> {
+//            reservationService.reserveSeats(request);
+//            return "Thread 2 Success";
+//        };
+//
+//        // WHEN
+//        Future<String> result1 = executorService.submit(task1);
+//        Future<String> result2 = executorService.submit(task2);
+//
+//        executorService.shutdown();
+//        executorService.awaitTermination(5, TimeUnit.SECONDS);
+//
+//        // THEN: 하나의 스레드만 성공해야 함
+//        System.out.println(result1.get());
+//        System.out.println(result2.get());
+//
+//        List<Seats> reservedSeats = seatsRepository.findByMovieIdAndSeatNumberIn(movieId, List.of(seatNumber));
+//        assertThat(reservedSeats.get(0).getIsReserved()).isTrue();
+//    }
+
+
     @Test
-    void pessimistic_lock_test() throws InterruptedException, ExecutionException {
-        // GIVEN: 초기 데이터 설정
+    void optimistic_lock_test() throws InterruptedException, ExecutionException {
+        // GIVEN: 초기 좌석 데이터 설정
         Long movieId = 1L;
         String seatNumber = "A1";
 
@@ -49,13 +108,13 @@ class ReservationLockTest {
 
         Movies movies =
                 Movies.builder()
-                .id(movieId)
-                .title("영화1")
+                        .id(movieId)
+                        .title("영화1")
                         .showing(true)
                         .ageRating("12")
                         .runningMinutes(120)
                         .genre(EGenre.ACTION)
-                .build();
+                        .build();
         movieRepository.save(movies);
 
         ReservationRequest request = ReservationRequest.builder()
@@ -63,32 +122,30 @@ class ReservationLockTest {
                 .seatNumbers(List.of(seatNumber))
                 .userId(100L)
                 .build();
-
-        // 두 개의 스레드가 동시에 예약 시도
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        // 두 스레드가 동시에 예약 시도
+        ExecutorService executor = Executors.newFixedThreadPool(2);
 
         Callable<String> task1 = () -> {
             reservationService.reserveSeats(request);
-            return "Thread 1 Success";
+            return "Thread 1 성공";
         };
 
         Callable<String> task2 = () -> {
             reservationService.reserveSeats(request);
-            return "Thread 2 Success";
+            return "Thread 2 성공";
         };
 
-        // WHEN
-        Future<String> result1 = executorService.submit(task1);
-        Future<String> result2 = executorService.submit(task2);
+        Future<String> result1 = executor.submit(task1);
+        Future<String> result2 = executor.submit(task2);
 
-        executorService.shutdown();
-        executorService.awaitTermination(5, TimeUnit.SECONDS);
+        executor.shutdown();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
 
-        // THEN: 하나의 스레드만 성공해야 함
+        // 결과 확인
         System.out.println(result1.get());
         System.out.println(result2.get());
 
-        List<Seats> reservedSeats = seatsRepository.findByMovieIdAndSeatNumberIn(movieId, List.of(seatNumber));
-        assertThat(reservedSeats.get(0).getIsReserved()).isTrue();
+        Seats updatedSeat = seatsRepository.findByMovieIdAndSeatNumberIn(movieId, List.of(seatNumber)).get(0);
+        assertThat(updatedSeat.getIsReserved()).isTrue();
     }
 }
