@@ -2,6 +2,8 @@ package com.sparta.multimovieservice.controller;
 
 import com.sparta.dto.movie.MovieCreateRequestDto;
 import com.sparta.dto.movie.MovieResponseDto;
+import com.sparta.exception.RateLimitException;
+import com.sparta.multimovieservice.redis.GetMovieRateLimiter;
 import com.sparta.multimovieservice.service.MovieService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +21,16 @@ import java.util.List;
 public class MovieController {
 
     private final MovieService movieService;
+    private final GetMovieRateLimiter getMovieRateLimiter;
 
     @GetMapping
-    public ResponseEntity<List<MovieResponseDto>> getCurrentMovies() {
+    public ResponseEntity<List<MovieResponseDto>> getCurrentMovies(
+            @RequestHeader(value = "X-Forwarded-For", required = false, defaultValue = "127.0.0.1") String ip
+    ) {
+        if (!getMovieRateLimiter.checkScreeningRateLimit(ip)) {
+            throw new RateLimitException("Too many requests. Please try again in 1 hour.");
+        }
+
         Runtime runtime = Runtime.getRuntime();
         long totalMemory = runtime.totalMemory();
         long freeMemory = runtime.freeMemory();
@@ -37,7 +46,13 @@ public class MovieController {
     @GetMapping("/search")
     public ResponseEntity<List<MovieResponseDto>> searchMovies(
             @RequestParam(required = false) String title,
-            @RequestParam(required = false) String genres) {
+            @RequestParam(required = false) String genres,
+            @RequestHeader(value = "X-Forwarded-For", required = false, defaultValue = "127.0.0.1") String ip
+    ) {
+        if (!getMovieRateLimiter.checkScreeningRateLimit(ip)) {
+            throw new RateLimitException("Too many requests. Please try again in 1 hour.");
+        }
+
         Runtime runtime = Runtime.getRuntime();
         long totalMemory = runtime.totalMemory();
         long freeMemory = runtime.freeMemory();

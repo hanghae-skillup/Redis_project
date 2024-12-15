@@ -174,7 +174,7 @@ public class BookingService {
         return true;
     }
 
-    private List<Seat> getSeatsByNumbers(Integer theaterId, List<String> seatNumbers) {
+    public List<Seat> getSeatsByNumbers(Integer theaterId, List<String> seatNumbers) {
         if (theaterId == null) {
             throw new MovieException("Theater ID is null.");
         }

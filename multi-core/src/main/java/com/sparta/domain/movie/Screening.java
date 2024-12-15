@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 @Table(name = "screenings")
 @Getter
 @Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // protected로 기본 생성자 제한
+@AllArgsConstructor(access = AccessLevel.PRIVATE) // 모든 인수를 받는 생성자
 public class Screening {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

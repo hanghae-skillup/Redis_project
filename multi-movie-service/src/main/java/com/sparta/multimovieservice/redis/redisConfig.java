@@ -1,4 +1,4 @@
-package com.sparta.multimovieservice.config;
+package com.sparta.multimovieservice.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;

@@ -35,4 +35,13 @@ public class BookingExceptionHandler {
         response.put("message", e.getMessage());
         return ResponseEntity.internalServerError().body(response);
     }
+
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<Map<String, String>> handleRateLimitException(RateLimitException e) {
+        log.error("Rate limit exceeded: {}", e.getMessage());
+        Map<String, String> response = new HashMap<>();
+        response.put("message", e.getMessage());
+        return ResponseEntity.status(429).body(response);
+    }
+
 }

@@ -1,6 +1,7 @@
 package com.sparta.multimovieservice.exception;
 
 import com.sparta.exception.MovieException;
+import com.sparta.exception.RateLimitException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -27,5 +28,13 @@ public class MovieExceptionHandler {
         Map<String, String> response = new HashMap<>();
         response.put("message", "Invalid Argument Exception.");
         return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<Map<String, String>> handleRateLimitException(RateLimitException e) {
+        log.error("Rate limit exceeded: {}", e.getMessage());
+        Map<String, String> response = new HashMap<>();
+        response.put("message", e.getMessage());
+        return ResponseEntity.status(429).body(response);
     }
 }
