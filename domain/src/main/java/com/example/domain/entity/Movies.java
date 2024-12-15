@@ -72,4 +72,8 @@ public class Movies extends Timestamped{
         this.showing = showing;
         this.updateBy(userId);
     }
+
+    public Boolean notShowing(){
+        return !this.showing;
+    }
 }

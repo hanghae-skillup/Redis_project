@@ -17,6 +17,14 @@ public class Seats extends Timestamped{
 
     private String seatNumber;
     private Long movieId;
+    private Boolean isReserved;
+    private Long reservationId;
+
+    public void updateReservation(Long userId, Long reservationId){
+        this.isReserved = true;
+        this.reservationId = reservationId;
+        this.updateBy(userId);
+    }
 
 
 
