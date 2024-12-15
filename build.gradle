@@ -45,7 +45,7 @@ subprojects {
 		testCompileOnly 'org.projectlombok:lombok:1.18.30'
 		testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
 		testImplementation 'org.springframework.boot:spring-boot-starter-test' // JUnit + Mockito 포함
-
+		implementation 'org.redisson:redisson-spring-boot-starter:3.21.0'
 	}
 
 	tasks.named('test') {

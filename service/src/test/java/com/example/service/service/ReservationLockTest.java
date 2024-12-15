@@ -148,4 +148,47 @@ class ReservationLockTest {
         Seats updatedSeat = seatsRepository.findByMovieIdAndSeatNumberIn(movieId, List.of(seatNumber)).get(0);
         assertThat(updatedSeat.getIsReserved()).isTrue();
     }
+
+    @Test
+    void distributed_lock_test() throws InterruptedException {
+        Long movieId = 1L;
+        String seatNumber = "A1";
+
+        Seats seat = Seats.builder()
+                .movieId(movieId)
+                .seatNumber(seatNumber)
+                .isReserved(false)
+                .build();
+        seatsRepository.save(seat);
+
+        Movies movies =
+                Movies.builder()
+                        .id(movieId)
+                        .title("영화1")
+                        .showing(true)
+                        .ageRating("12")
+                        .runningMinutes(120)
+                        .genre(EGenre.ACTION)
+                        .build();
+        movieRepository.save(movies);
+        Runnable task = () -> {
+
+            ReservationRequest request = ReservationRequest.builder()
+                    .movieId(movieId)
+                    .seatNumbers(List.of(seatNumber))
+                    .userId(100L)
+                    .build();
+            reservationService.reserveSeats(request);
+        };
+
+        Thread thread1 = new Thread(task);
+        Thread thread2 = new Thread(task);
+
+        thread1.start();
+        thread2.start();
+
+        thread1.join();
+        thread2.join();
+
+    }
 }

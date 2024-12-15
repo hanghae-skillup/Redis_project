@@ -1,6 +1,7 @@
 package com.example.service.service;
 
 import com.example.common.dto.ReservationRequest;
+import com.example.common.lock.DistributedLock;
 import com.example.domain.entity.Movies;
 import com.example.domain.entity.Reservations;
 import com.example.domain.entity.Seats;
@@ -26,6 +27,7 @@ public class ReservationService {
     private final MovieRepository movieRepository;
 
     @Transactional
+    @DistributedLock(key = "reserveSeatsLock", leaseTime = 10)
     public void reserveSeats(ReservationRequest request) {
         // 1. 영화가 존재하는지 확인
         Movies movie = movieRepository.findById(request.getMovieId())
