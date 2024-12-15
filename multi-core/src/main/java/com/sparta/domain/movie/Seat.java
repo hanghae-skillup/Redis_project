@@ -2,16 +2,14 @@ package com.sparta.domain.movie;
 
 import com.sparta.domain.theater.Theater;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "seats")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Seat {
     @Id
@@ -34,6 +32,12 @@ public class Seat {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "is_booked", nullable = false)
+    private Boolean isBooked = false;
+
+    @Version
+    private Long version;
+
     @Builder
     public Seat(Theater theater, String seatRow, Integer seatColumn) {
         this.theater = theater;
@@ -41,5 +45,13 @@ public class Seat {
         this.seatColumn = seatColumn;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void book() {
+        this.isBooked = true;
+    }
+
+    public Boolean isBooked() {
+        return isBooked;
     }
 }
