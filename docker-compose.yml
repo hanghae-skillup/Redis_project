@@ -1,0 +1,40 @@
+version: '3.8'
+services:
+  db:
+    image: mysql:8.1
+    container_name: project_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: project_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: user_password
+    ports:
+      - "3307:3306" # 로컬 3307 포트를 컨테이너의 3306 포트에 매핑
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - project_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: project_app
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/project_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: user_password
+    ports:
+      - "8080:8080" # 로컬 8080 포트를 컨테이너의 8080 포트에 매핑
+    depends_on:
+      - db
+    networks:
+      - project_network
+
+volumes:
+  db_data:
+
+networks:
+  project_network:
