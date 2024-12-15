@@ -1,7 +1,7 @@
-package com.sparta.domain.reservation;
+package com.sparta.domain.booking;
 
 import com.sparta.domain.movie.Screening;
-import com.sparta.domain.theater.Seat;
+import com.sparta.domain.movie.Seat;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -11,13 +11,13 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "reservations")
+@Table(name = "booking")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Reservation {
+public class Booking {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "screening_id", nullable = false)
@@ -27,8 +27,8 @@ public class Reservation {
     @JoinColumn(name = "seat_id", nullable = false)
     private Seat seat;
 
-    @Column(name = "customer_name", nullable = false)
-    private String customerName;
+    @Column(name = "user_id", nullable = false)
+    private String userId;
 
     @Column(name = "phone_number", nullable = false)
     private String phoneNumber;
@@ -40,10 +40,10 @@ public class Reservation {
     private LocalDateTime updatedAt;
 
     @Builder
-    public Reservation(Screening screening, Seat seat, String customerName, String phoneNumber) {
+    public Booking(Screening screening, Seat seat, String userId, String phoneNumber) {
         this.screening = screening;
         this.seat = seat;
-        this.customerName = customerName;
+        this.userId = userId;
         this.phoneNumber = phoneNumber;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();

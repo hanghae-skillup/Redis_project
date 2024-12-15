@@ -1,5 +1,6 @@
-package com.sparta.domain.theater;
+package com.sparta.domain.movie;
 
+import com.sparta.domain.theater.Theater;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
 public class Seat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "theater_id", nullable = false)

@@ -1,11 +1,11 @@
 package com.sparta.multimovieservice.service;
 
 import com.sparta.domain.movie.Movie;
-import com.sparta.dto.MovieCreateRequestDto;
-import com.sparta.dto.MovieResponseDto;
+import com.sparta.dto.movie.MovieCreateRequestDto;
+import com.sparta.dto.movie.MovieResponseDto;
 import com.sparta.exception.MovieException;
-import com.sparta.multimovieservice.impl.MovieRepositoryImpl;
-import com.sparta.repository.MovieRepository;
+import com.sparta.multimovieservice.repository.MovieJpaRepository;
+import com.sparta.repository.movie.MovieRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -26,20 +26,20 @@ public class MovieService {
     private static final long CACHE_DURATION_HOURS = 1;
 
     private final MovieRepository movieRepository;
-    private final MovieRepositoryImpl movieRepositoryImpl;
+    private final MovieJpaRepository movieJpaRepository;
     private final RedisTemplate<String, List<MovieResponseDto>> redisTemplate;
 
-    public MovieService(MovieRepository movieRepository, MovieRepositoryImpl movieRepositoryImpl,
+    public MovieService(MovieRepository movieRepository, MovieJpaRepository movieJpaRepository,
                         RedisTemplate<String, List<MovieResponseDto>> redisTemplate) {
         this.movieRepository = movieRepository;
-        this.movieRepositoryImpl = movieRepositoryImpl;
+        this.movieJpaRepository = movieJpaRepository;
         this.redisTemplate = redisTemplate;
     }
 
     @Cacheable(value = LIST_CACHE_KEY, unless = "#result.isEmpty()")
     public List<MovieResponseDto> getCurrentMovies() {
         log.info("Fetching current movies from database");
-        return movieRepositoryImpl.findAllByOrderByReleaseDateDesc().stream()
+        return movieJpaRepository.findAllByOrderByReleaseDateDesc().stream()
                 .map(MovieResponseDto::from)
                 .collect(Collectors.toList());
     }
@@ -84,16 +84,16 @@ public class MovieService {
         List<Movie> movies;
         try {
             if (title == null && genres == null) {
-                movies = movieRepositoryImpl.findAllByOrderByReleaseDateDesc();
+                movies = movieJpaRepository.findAllByOrderByReleaseDateDesc();
             } else if (title != null && genres != null) {
                 log.info("Searching by title: '{}' and genres: '{}'", title, genres);
-                movies = movieRepositoryImpl.findByTitleAndGenresContaining(title, genres);
+                movies = movieJpaRepository.findByTitleAndGenresContaining(title, genres);
             } else if (title != null) {
                 log.info("Searching by title: '{}'", title);
-                movies = movieRepositoryImpl.findByTitleContaining(title);
+                movies = movieJpaRepository.findByTitleContaining(title);
             } else {
                 log.info("Searching by genres: '{}'", genres);
-                movies = movieRepositoryImpl.findByGenresContaining(genres);
+                movies = movieJpaRepository.findByGenresContaining(genres);
             }
             log.info("Found {} movies in database", movies.size());
             return movies;

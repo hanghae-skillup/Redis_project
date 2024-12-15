@@ -1,9 +1,8 @@
-package com.sparta.multimovieservice.util;
+package com.sparta.multimovieservice;
 
 import com.sparta.domain.movie.Movie;
 import com.sparta.domain.movie.MovieRating;
-import com.sparta.multimovieservice.impl.MovieRepositoryImpl;
-import com.sparta.repository.MovieRepository;
+import com.sparta.multimovieservice.repository.MovieJpaRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +18,7 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 public class TestDataGenerator {
-    private final MovieRepositoryImpl movieRepository;
+    private final MovieJpaRepository movieRepository;
 
     private static final String[] GENRES = {
             "Action", "Drama", "Comedy", "Romance", "Horror",
@@ -37,7 +36,7 @@ public class TestDataGenerator {
     };
 
     @Transactional
-    public void generateTestData() {
+    public void generateMovieData() {
         List<Movie> movies = new ArrayList<>();
         LocalDate baseDate = LocalDate.now().minusYears(2);
 

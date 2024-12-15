@@ -1,4 +1,4 @@
-package com.sparta.repository;
+package com.sparta.repository.movie;
 
 import com.sparta.domain.movie.Movie;
 import java.util.List;

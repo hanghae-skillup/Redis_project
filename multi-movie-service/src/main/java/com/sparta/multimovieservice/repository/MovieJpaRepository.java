@@ -1,7 +1,7 @@
-package com.sparta.multimovieservice.impl;
+package com.sparta.multimovieservice.repository;
 
 import com.sparta.domain.movie.Movie;
-import com.sparta.repository.MovieRepository;
+import com.sparta.repository.movie.MovieRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface MovieRepositoryImpl extends JpaRepository<Movie, Long>, MovieRepository {
+public interface MovieJpaRepository extends JpaRepository<Movie, Long>, MovieRepository {
     @Override
     @Query("SELECT m FROM Movie m ORDER BY m.releaseDate DESC")
     List<Movie> findAllByOrderByReleaseDateDesc();

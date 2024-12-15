@@ -1,4 +1,4 @@
-package com.sparta.dto;
+package com.sparta.dto.movie;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.sparta.domain.movie.Movie;
@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MovieResponseDto {
-    private Long id;
+    private Integer id;
     private String title;
     private MovieRating rating;
     private LocalDate releaseDate;
@@ -21,7 +21,7 @@ public class MovieResponseDto {
     private String genres;
 
     @Builder
-    private MovieResponseDto(Long id, String title, MovieRating rating,
+    private MovieResponseDto(Integer id, String title, MovieRating rating,
                              LocalDate releaseDate, String thumbnailUrl,
                              Integer duration, String genres) {
         this.id = id;

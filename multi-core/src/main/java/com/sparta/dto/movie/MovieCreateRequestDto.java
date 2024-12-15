@@ -1,4 +1,4 @@
-package com.sparta.dto;
+package com.sparta.dto.movie;
 
 import com.sparta.domain.movie.Movie;
 import com.sparta.domain.movie.MovieRating;

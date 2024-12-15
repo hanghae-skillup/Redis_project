@@ -11,7 +11,7 @@
 ### multi-booking-service (PORT: 8083)
 - 영화 예약을 담당하는 서비스입니다.
 - 현재 상영(Screening)에 대한 좌석 예매하며, 중복 예매 방지, 예매 정보(고객 이름, 전화번호)를 저장합니다.
----
+
 ## Table Design
 - Movies (영화 정보 저장)
     - rating: 영화 관람등급 (ALL, TWELVE, FIFTEEN, ADULT)
@@ -26,16 +26,16 @@
 - Screenings
     - 영화 상영 일정 (현재 예약 가능한 영화)
     - movie_id와 theater_id로 어떤 영화가 어느 상영관에서 상영되는지 구분
-- Reservations
+- Booking
     - 예매 정보
     - screening_id로 어떤 상영에 대한 예매인지 구분
     - seat_id로 어떤 좌석이 예매되었는지 구분
-    - customer_name과 phone_number로 예매자 정보 관리
+    - usre_id와 phone_number로 예매자 정보 관리
 - Notes
     - 모든 테이블은 생성일자(created_at)와 수정일자(updated_at) 포함
     - 외래키 제약조건을 통해 데이터 정합성 보장
     - 인덱스는 기본키(PK)만 사용
----
+
 # Test summary
 ## 1. 캐싱 데이터 설계
 ### 1.1 캐싱 대상 데이터
@@ -58,7 +58,7 @@
 - 총 영화 데이터: 500개
 - 장르 분포: 10개 장르, 각 50개 영화
 - 데이터 구조:
-```json
+```
 Movie {
   title: String (평균 30자)
   rating: String (5자)
@@ -126,7 +126,158 @@ public List<MovieProjection> searchMovies(String searchTerm) {
 
 ## 4. 테스트 시나리오
 ### 4.1 K6 테스트 스크립트
-`여기에 테스트 스크립트 파일 링크`
+<details>
+<summary>테스트 스크립트 코드</summary>
+
+```Javascript
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+import { Rate, Trend, Counter } from 'k6/metrics';
+
+const errorRate = new Rate('error_rate');
+const cacheHitRate = new Rate('cache_hit_rate');
+const requestDuration = new Trend('request_duration');
+const sortValidationRate = new Rate('sort_validation_rate');
+
+const memoryUsed = new Trend('memory_used');
+const memoryTotal = new Trend('memory_total');
+const memoryRss = new Trend('memory_rss');
+
+export const options = {
+    stages: [
+      { duration: '2m', target: 1000 },  // 램프 업
+      { duration: '5m', target: 5000 },  // 피크 부하
+      { duration: '3m', target: 0 }      // 램프 다운
+    ],
+    thresholds: {
+      http_req_duration: ['p(95)<3000'],    // 3초
+      error_rate: ['rate<0.01'],            // 1% 미만
+      sort_validation_rate: ['rate>0.95'],  // 95% 이상
+      memory_used: ['avg<1000'],            
+      memory_total: ['max<2000'],           
+      memory_rss: ['p(95)<1500']            // RSS 메모리 95p 1.5GB 미만
+    },
+  };
+
+const MOVIE_TITLES = [
+    "Great", "Secret", "Last", "New", "Mysterious",
+    "Golden", "Shining", "Eternal", "Sweet", "Cold"
+];
+
+const GENRES = [
+    "Action", "Drama", "Comedy", "Romance", "Horror",
+    "SF", "Animation", "Documentary", "Thriller", "Fantasy"
+];
+
+function isReleaseDateSorted(movies) {
+  try {
+    if (!Array.isArray(movies)) {
+      console.log('Response is not an array:', movies);
+      return false;
+    }
+    
+    for (let i = 1; i < movies.length; i++) {
+      const prevDate = new Date(movies[i-1].releaseDate);
+      const currDate = new Date(movies[i].releaseDate);
+      if (isNaN(prevDate.getTime()) || isNaN(currDate.getTime())) {
+        console.log('Invalid date found:', movies[i-1].releaseDate, movies[i].releaseDate);
+        return false;
+      }
+      if (prevDate < currDate) {
+        return false;
+      }
+    }
+    return true;
+  } catch (e) {
+    console.error('Error in sort validation:', e);
+    return false;
+  }
+}
+
+function buildQueryString(params) {
+  const queryParts = [];
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== null && value !== undefined) {
+      queryParts.push(`${key}=${encodeURIComponent(value)}`);
+    }
+  }
+  return queryParts.length > 0 ? '?' + queryParts.join('&') : '';
+}
+
+function recordMetrics(response, checkName) {
+  let movies;
+  try {
+    movies = JSON.parse(response.body);
+  } catch (e) {
+    console.error('Failed to parse response body:', response.body);
+    return false;
+  }
+
+  const isSorted = isReleaseDateSorted(movies);
+
+  const checks = check(response, {
+    [`${checkName} status is 200`]: (r) => r.status === 200,
+    [`${checkName} response time OK`]: (r) => r.timings.duration < 5000,
+    [`${checkName} release date is sorted`]: () => isSorted
+  });
+
+  requestDuration.add(response.timings.duration);
+  errorRate.add(response.status !== 200);
+  sortValidationRate.add(isSorted);
+  
+  if (response.headers['X-Memory-Used']) {
+    memoryUsed.add(Number(response.headers['X-Memory-Used']));
+  }
+  if (response.headers['X-Memory-Total']) {
+    memoryTotal.add(Number(response.headers['X-Memory-Total']));
+  }
+  if (response.headers['X-Memory-Rss']) {
+    memoryRss.add(Number(response.headers['X-Memory-Rss']));
+  }
+
+  return checks;
+}
+
+export default function () {
+  const BASE_URL = 'http://localhost:8081/movies';
+  const scenario = Math.random();
+  
+  let response;
+  try {
+    if (scenario < 0.5) {
+      response = http.get(BASE_URL);
+      recordMetrics(response, 'getCurrentMovies');
+    } else {
+      let queryParams = {};
+      
+      if (Math.random() < 0.5) {
+        queryParams.title = getRandomElement(MOVIE_TITLES);
+      }
+      if (Math.random() < 0.5) {
+        queryParams.genres = getRandomElement(GENRES);
+      }
+      
+      if (Object.keys(queryParams).length === 0) {
+        queryParams.title = getRandomElement(MOVIE_TITLES);
+      }
+      
+      const queryString = buildQueryString(queryParams);
+      response = http.get(`${BASE_URL}/search${queryString}`);
+      recordMetrics(response, 'searchMovies');
+    }
+  } catch (e) {
+    console.error('Request failed:', e);
+  }
+
+  sleep(1);
+}
+
+function getRandomElement(array) {
+  return array[Math.floor(Math.random() * array.length)];
+}
+```
+</details>
+
 ### 4.2 모니터링 지표
 
 - 응답 시간 (Response Time)
@@ -160,41 +311,49 @@ public List<MovieProjection> searchMovies(String searchTerm) {
 5. 시스템 리소스 사용률
 
 ## 6. 테스트 결과
-### 6-1. 인덱싱 적용 전
 
-- 테스트 단계: 인덱싱 적용 전
-- 실행 일시: 2024-12-15 23:30
-- 테스트 기간: 10분
+### 테스트 환경
+|구분|테스트 1 (인덱싱 적용 전)|테스트 2 (인덱싱 적용 후)|테스트 3 (인덱싱+캐싱 적용)|
+|---|---|---|---|
+|테스트 단계|인덱싱 적용 전|인덱싱 적용 후, 캐싱 적용 전|인덱싱과 캐싱 적용 후|
+|실행 일시|2024-12-15 23:30|2024-12-15 01:20|2024-12-15 02:00|
+|테스트 기간|10분|10분|10분|
 
-1. 성능 지표 
-   - 평균 응답시간: 6.13초
-   - p95 응답시간: 14.62초
-   - p90 응답시간: 13.27초
-   - 최대 RPS: 333.12
-   - 오류율: 0%
+### 성능 지표
+|지표|테스트 1 (인덱싱 적용 전)|테스트 2 (인덱싱 적용 후)|테스트 3 (인덱싱+캐싱 적용)|
+|---|---|---|---|
+|평균 응답시간|6.13초|10.99초|6.32초|
+|p95 응답시간|14.62초|26.29초|15.52초|
+|p90 응답시간|13.27초|24.00초|14.37초|
+|최대 응답시간|26.73초|43.46초|25.96초|
+|최대 RPS|333.12|200.76|322.81|
+|오류율|0%|0%|0%|
+
+### 리소스 사용률
+|지표|테스트 1 (인덱싱 적용 전)|테스트 2 (인덱싱 적용 후)|테스트 3 (인덱싱+캐싱 적용)|
+|---|---|---|---|
+|수신된 데이터|12 GB (19 MB/s)|6.9 GB (12 MB/s)|11 GB (19 MB/s)|
+|전송된 데이터|22 MB (37 kB/s)|13 MB (22 kB/s)|21 MB (36 kB/s)|
+|연결 설정 시간|174.69µs|706.01µs|687.98µs|
+|대기 시간|6.13초|10.99초|6.31초|
+|수신 시간|1.57ms|3.9ms|4.14ms|
+|전송 시간|357.65µs|1.22ms|1.36ms|
+|총 메모리|679.70 MB|698.04 MB|864.02 MB|
+|사용된 메모리|315.13 MB|316.57 MB|377.88 MB|
+
+### 성능 체크 결과
+|지표|테스트 1 (인덱싱 적용 전)|테스트 2 (인덱싱 적용 후)|테스트 3 (인덱싱+캐싱 적용)|
+|---|---|---|---|
+|전체 체크 성공률|83.25% (499,965/600,504)|77.91% (282,036/361,992)|82.67% (480,976/581,796)|
+|API 응답 성공률|100%|100%|100%|
+|응답시간 < 3초 (searchMovies)|49%|33%|47%|
+|응답시간 < 3초 (getCurrentMovies)|50%|33%|48%|
+|정렬 검증 성공률|100%|100%|100%|
 
 
-2. 리소스 사용률
-   - 수신된 데이터: 12 GB (19 MB/s)
-   - 전송된 데이터: 22 MB (37 kB/s)
-   - HTTP 요청 처리 시간:
-     - 연결 설정: 평균 174.69µs
-     - 대기 시간: 평균 6.13초
-     - 수신 시간: 평균 1.57ms
-     - 전송 시간: 평균 357.65µs
-   - 메모리 사용량:
-       - 총 메모리: 679.70 MB
-       - 사용된 메모리: 315.13 MB
 
 
-3. 성능 체크 결과
-   - 전체 체크 성공률: 83.25% (499,965 / 600,504)
-   - API 응답 성공률: 100% (오류율 0%)
-   - 응답시간 < 3초: 약 49% (searchMovies), 50% (getCurrentMovies)
-   - 정렬 검증 성공률: 100% (sort_validation_rate=100%)
-
-
-### 분석
+### 테스트1 (인덱싱 사용 전) 분석
 - Throughput
   - 목표 RPS(5,000)의 6.6%인 333.12 RPS만 처리 가능
   - 높은 부하 상황에서 서버가 요청을 효과적으로 처리하지 못함
@@ -212,39 +371,9 @@ public List<MovieProjection> searchMovies(String searchTerm) {
   - 메모리 사용량: 총 679.70MB 중 315.13MB 사용 (정상 범위)
   - HTTP 연결 설정 시간 평균 174.69µs로 양호
 ---
-### 6-2. 인덱싱 적용 후, 캐싱 적용 전
-- 테스트 단계: 인덱싱 적용 후, 캐싱 적용 전
-- 실행 일시: 2024-12-15 01:20
-- 테스트 기간: 10분
-
-1. 성능 지표
-   - 평균 응답시간: 10.99초
-   - p95 응답시간: 26.29초
-   - p90 응답시간: 24.00초
-   - 최대 응답시간: 43.46초
-   - 최대 RPS: 200.76 RPS
-   - 오류율: 0%
 
 
-2. 리소스 사용률
-   - 수신된 데이터: 6.9 GB (12 MB/s)
-   - 전송된 데이터: 13 MB (22 kB/s)
-   - HTTP 요청 처리 시간:
-       - 연결 설정: 평균 706.01µs
-       - 대기 시간: 평균 10.99초
-       - 수신 시간: 평균 3.9ms
-       - 전송 시간: 평균 1.22ms
-   - 메모리 사용량:
-       - 총 메모리: 698.04 MB
-       - 사용된 메모리: 316.57 MB
-
-3. 성능 체크 결과
- - 전체 체크 성공률: 77.91% (282,036 / 361,992)
- - API 응답 성공률: 100% (오류율 0%)
- - 응답시간 < 3초: 약 33% (searchMovies), 33% (getCurrentMovies)
- - 정렬 검증 성공률: 100% (sort_validation_rate=100%)
-
-### 분석
+### 테스트 2 (인덱싱 사용 후, 캐싱 사용 전) 분석
 
 1. Throughput
    - 목표 RPS(5,000)의 4%인 200.76 RPS 처리 가능
@@ -268,39 +397,8 @@ public List<MovieProjection> searchMovies(String searchTerm) {
 
 ---
 
-### 6-3. 인덱싱과 캐싱 적용 후
 
-- 테스트 단계: 인덱싱 적용 후, 캐싱 적용 전
-- 실행 일시: 2024-12-15 02:00
-- 테스트 기간: 10분
-
-1. 성능 지표
-   - 평균 응답시간: 6.32초
-   - p95 응답시간: 15.52초
-   - p90 응답시간: 14.37초
-   - 최대 응답시간: 25.96초
-   - 최대 RPS: 322.81 RPS
-   - 오류율: 0%
-
-2. 리소스 사용률
-   - 수신된 데이터: 11 GB (19 MB/s)
-   - 전송된 데이터: 21 MB (36 kB/s)
-   - HTTP 요청 처리 시간:
-       - 연결 설정: 평균 687.98µs
-       - 대기 시간: 평균 6.31초
-       - 수신 시간: 평균 4.14ms
-       - 전송 시간: 평균 1.36ms
-   - 메모리 사용량:
-       - 총 메모리: 864.02 MB
-       - 사용된 메모리: 377.88 MB
-
-3. 성능 체크 결과
-   - 전체 체크 성공률: 82.67% (480,976 / 581,796)
-   - API 응답 성공률: 100% (오류율 0%)
-   - 응답시간 < 3초: 약 47% (searchMovies), 48% (getCurrentMovies)
-   - 정렬 검증 성공률: 100%
-
-### 분석
+### 테스트 3 (인덱싱 사용 후, 캐싱 사용 후) 분석
 
 1. Throughput 개선
    - RPS가 200.76에서 322.81로 60.8% 증가
@@ -324,3 +422,5 @@ public List<MovieProjection> searchMovies(String searchTerm) {
    - 메모리 사용량 19.4% 증가 (총 메모리 698.04MB → 864.02MB)
    - 연결 설정 시간 2.6% 개선 (706.01µs → 687.98µs)
 
+
+---

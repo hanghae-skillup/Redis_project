@@ -1,6 +1,5 @@
 package com.sparta.multimovieservice;
 
-import com.sparta.multimovieservice.util.TestDataGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,9 +10,21 @@ class MultiMovieServiceApplicationTests {
 	@Autowired
 	private TestDataGenerator testDataGenerator;
 
+	@Autowired
+	private TheaterTestDataGenerator theaterTestDataGenerator;
+
+
+    @Test
+	void generateMovieData() {
+		testDataGenerator.generateMovieData();
+	}
 	@Test
-	void generateData() {
-		testDataGenerator.generateTestData();
+	void generateTheaters() {
+		theaterTestDataGenerator.generateAllTestData();
+	}
+	@Test
+	void generateScreeningData() {
+		theaterTestDataGenerator.generateAllScreeningData();
 	}
 
 }

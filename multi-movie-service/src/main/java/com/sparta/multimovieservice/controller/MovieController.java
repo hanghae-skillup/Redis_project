@@ -1,8 +1,7 @@
 package com.sparta.multimovieservice.controller;
 
-
-import com.sparta.dto.MovieCreateRequestDto;
-import com.sparta.dto.MovieResponseDto;
+import com.sparta.dto.movie.MovieCreateRequestDto;
+import com.sparta.dto.movie.MovieResponseDto;
 import com.sparta.multimovieservice.service.MovieService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class MovieController {
+
     private final MovieService movieService;
 
     @GetMapping
