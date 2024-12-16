@@ -1,0 +1,19 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.5'
+	id 'io.spring.dependency-management' version '1.1.4'
+}
+
+
+dependencies {
+	implementation 'com.google.guava:guava:32.1.2-jre' // 최신 버전 확인 필요
+
+
+}
+tasks.named('bootJar') {
+	enabled = false // bootJar 태스크 비활성화
+}
+
+tasks.named('jar') {
+	enabled = true // 일반 JAR 파일 생성 활성화
+}
