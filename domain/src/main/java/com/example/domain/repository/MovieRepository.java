@@ -12,4 +12,5 @@ import java.util.List;
 public interface MovieRepository extends JpaRepository<Movies, Long>, CustomMovieRepository {
     List<Movies> findByGenre(String genre);
     List<Movies> findByShowingOrderByReleaseDateDesc(Boolean showing);
+    List<Movies> findByIdAndShowing(Long id, Boolean showing);
 }

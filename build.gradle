@@ -40,7 +40,12 @@ subprojects {
 		implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 		implementation 'org.springframework.data:spring-data-redis'
 		implementation 'com.fasterxml.jackson.core:jackson-databind' // JSON 직렬화를 위한 의존성
-
+		compileOnly 'org.projectlombok:lombok:1.18.30'
+		annotationProcessor 'org.projectlombok:lombok:1.18.30'
+		testCompileOnly 'org.projectlombok:lombok:1.18.30'
+		testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
+		testImplementation 'org.springframework.boot:spring-boot-starter-test' // JUnit + Mockito 포함
+		implementation 'org.redisson:redisson-spring-boot-starter:3.21.0'
 	}
 
 	tasks.named('test') {

@@ -9,6 +9,9 @@ dependencies {
 	implementation project(':domain') // domain 모듈 의존성
 	implementation 'org.springframework.boot:spring-boot-starter'
 
+	// 테스트 관련 의존성
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
 }
 tasks.named('bootJar') {
 	enabled = false // bootJar 태스크 비활성화
