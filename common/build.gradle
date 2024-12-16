@@ -6,6 +6,8 @@ plugins {
 
 
 dependencies {
+	implementation 'com.google.guava:guava:32.1.2-jre' // 최신 버전 확인 필요
+
 
 }
 tasks.named('bootJar') {
