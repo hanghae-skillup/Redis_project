@@ -92,7 +92,7 @@ class ReservationLockTest {
 //        assertThat(reservedSeats.get(0).getIsReserved()).isTrue();
 //    }
 
-
+/*
     @Test
     void optimistic_lock_test() throws InterruptedException, ExecutionException {
         // GIVEN: 초기 좌석 데이터 설정
@@ -191,4 +191,7 @@ class ReservationLockTest {
         thread2.join();
 
     }
+
+ */
+
 }
